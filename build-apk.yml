@@ -1,0 +1,183 @@
+name: Build VEE'S ESSENTIALS APK
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - '.github/workflows/build-apk.yml'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Create Android project
+        shell: bash
+        run: |
+          set -e
+          mkdir -p app/src/main/java/com/veesessentials
+          mkdir -p app/src/main/assets
+          mkdir -p app/src/main/res/values
+
+          cat > settings.gradle <<'EOF'
+          pluginManagement {
+              repositories { google(); mavenCentral(); gradlePluginPortal() }
+          }
+          dependencyResolutionManagement {
+              repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
+              repositories { google(); mavenCentral() }
+          }
+          rootProject.name = "VEES_Essentials"
+          include(":app")
+          EOF
+
+          cat > build.gradle <<'EOF'
+          plugins {
+              id 'com.android.application' version '8.7.3' apply false
+          }
+          EOF
+
+          cat > app/build.gradle <<'EOF'
+          plugins { id 'com.android.application' }
+
+          android {
+              namespace 'com.veesessentials'
+              compileSdk 35
+
+              defaultConfig {
+                  applicationId 'com.veesessentials.shop'
+                  minSdk 23
+                  targetSdk 35
+                  versionCode 1
+                  versionName "1.0"
+              }
+          }
+          EOF
+
+          cat > app/src/main/res/values/styles.xml <<'EOF'
+          <resources>
+              <style name="AppTheme" parent="android:style/Theme.Material.Light.NoActionBar">
+                  <item name="android:fontFamily">sans</item>
+                  <item name="android:colorAccent">#30451E</item>
+                  <item name="android:statusBarColor">#273B17</item>
+                  <item name="android:navigationBarColor">#273B17</item>
+              </style>
+          </resources>
+          EOF
+
+          cat > app/src/main/AndroidManifest.xml <<'EOF'
+          <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+              <application android:theme="@style/AppTheme" android:label="VEE'S ESSENTIALS">
+                  <activity android:name=".MainActivity" android:screenOrientation="portrait" android:exported="true">
+                      <intent-filter>
+                          <action android:name="android.intent.action.MAIN"/>
+                          <category android:name="android.intent.category.LAUNCHER"/>
+                      </intent-filter>
+                  </activity>
+              </application>
+          </manifest>
+          EOF
+
+          cat > app/src/main/java/com/veesessentials/MainActivity.java <<'EOF'
+          package com.veesessentials;
+
+          import android.app.Activity;
+          import android.os.Bundle;
+          import android.webkit.WebView;
+          import android.webkit.WebViewClient;
+          import android.webkit.WebSettings;
+          import android.content.Intent;
+          import android.net.Uri;
+
+          public class MainActivity extends Activity {
+              @Override public void onCreate(Bundle b) {
+                  super.onCreate(b);
+                  WebView web = new WebView(this);
+                  web.setWebViewClient(new WebViewClient() {
+                      @Override public boolean shouldOverrideUrlLoading(WebView v, String url) {
+                          if (url.startsWith("https://wa.me/")) {
+                              try { startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse(url))); }
+                              catch (Exception ignored) {}
+                              return true;
+                          }
+                          return false;
+                      }
+                  });
+                  WebSettings s = web.getSettings();
+                  s.setJavaScriptEnabled(true);
+                  s.setDomStorageEnabled(true);
+                  web.loadUrl("file:///android_asset/index.html");
+                  setContentView(web);
+              }
+          }
+          EOF
+
+          cat > app/src/main/assets/index.html <<'EOF'
+          <!doctype html>
+          <html lang="en"><head><meta name="viewport" content="width=device-width,initial-scale=1">
+          <title>VEE'S ESSENTIALS</title><style>
+          *{box-sizing:border-box}body{margin:0;background:#f7f3e7;color:#1b2811;font-family:Arial,sans-serif}
+          .top{background:#273b17;color:#fff;padding:10px;text-align:center;font-size:12px}
+          header{background:#fffdf5;padding:18px;text-align:center;position:sticky;top:0;z-index:2;box-shadow:0 2px 10px #0001}
+          .logo{display:inline-flex;width:58px;height:58px;border:2px solid #536b34;border-radius:50%;align-items:center;justify-content:center;font:25px Georgia;color:#30451e}
+          h1{font:38px Georgia;margin:8px 0 2px;color:#30451e}header small{letter-spacing:5px}
+          .hero{padding:45px 22px;text-align:center;background:linear-gradient(135deg,#eee9d5,#f8f4e8)}
+          .hero p{font-size:18px;line-height:1.5}.btn{display:inline-block;background:#30451e;color:white;padding:14px 24px;border-radius:28px;text-decoration:none;border:0;font-weight:bold}
+          section{padding:30px 16px}h2{font:28px Georgia;color:#30451e}.cats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+          .cat{border:0;border-radius:15px;padding:20px 5px;background:#536b34;color:#fff;font-weight:bold}.cat:nth-child(2){background:#e8e1ce;color:#30451e}
+          .grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}.card{background:#fffdf6;border-radius:14px;padding:12px;box-shadow:0 4px 15px #0001}
+          .pic{height:125px;border-radius:10px;background:linear-gradient(145deg,#edf0df,#d8dfc3);display:grid;place-items:center;font-size:55px}
+          .card h3{font-size:15px}.price{font-weight:bold;margin:8px 0}.add{width:100%;padding:10px;border:0;border-radius:9px;background:#30451e;color:white}
+          footer{background:#273b17;color:#fff;padding:25px;text-align:center}.cart{position:fixed;right:14px;bottom:18px;background:#30451e;color:#fff;border:0;border-radius:50px;padding:15px 20px;z-index:5}
+          </style></head><body>
+          <div class="top">🚚 Fast Delivery Across Nigeria • 💬 +234 915 918 5139</div>
+          <header><div class="logo">VE</div><h1>VEE'S ESSENTIALS</h1><small>COSMETICS • CLOTHING • SKIN CARE</small></header>
+          <div class="hero"><p>✨ Look Good • Feel Good • Be You</p><h2>Your beauty & style, all in one place.</h2>
+          <p>Quality cosmetics, trendy clothing and premium skin care.</p>
+          <a class="btn" href="#shop">SHOP NOW</a></div>
+          <section><h2>Categories</h2><div class="cats">
+          <button class="cat" onclick="filter('Cosmetics')">💄<br>Cosmetics</button>
+          <button class="cat" onclick="filter('Skin Care')">🧴<br>Skin Care</button>
+          <button class="cat" onclick="filter('Clothing')">👗<br>Clothing</button></div></section>
+          <section id="shop"><h2>Featured Products</h2><div id="products" class="grid"></div></section>
+          <section style="text-align:center"><h2>Ready to order?</h2><p>Chat with VEE'S ESSENTIALS on WhatsApp.</p>
+          <a class="btn" href="https://wa.me/2349159185139?text=Hello%20VEE'S%20ESSENTIALS%2C%20I%20want%20to%20place%20an%20order.">ORDER ON WHATSAPP</a></section>
+          <footer>© VEE'S ESSENTIALS<br>Cosmetics • Clothing • Skin Care<br>+234 915 918 5139</footer>
+          <button class="cart" onclick="checkout()">🛒 Cart (<span id="count">0</span>)</button>
+          <script>
+          const P=[
+          [1,'Matte Makeup Set','Cosmetics',15000,'💄'],[2,'Brightening Skincare Set','Skin Care',12000,'🧴'],
+          [3,'Classic Two-Piece Set','Clothing',22000,'👗'],[4,'Glow Body Lotion','Skin Care',8500,'🧴'],
+          [5,'Luxury Perfume','Cosmetics',10000,'🌸'],[6,'Lip & Beauty Set','Cosmetics',7500,'💋'],
+          [7,'Casual Hoodie','Clothing',18000,'👕'],[8,'Everyday Dress','Clothing',20000,'👗']];
+          let C=[];
+          const naira=n=>'₦'+n.toLocaleString('en-NG');
+          function show(a=P){document.getElementById('products').innerHTML=a.map(p=>`<div class="card"><div class="pic">${p[4]}</div><h3>${p[1]}</h3><div class="price">${naira(p[3])}</div><button class="add" onclick="add(${p[0]})">Add to Cart</button></div>`).join('')}
+          function add(id){C.push(P.find(x=>x[0]===id));document.getElementById('count').textContent=C.length}
+          function filter(c){show(P.filter(p=>p[2]===c));document.getElementById('shop').scrollIntoView()}
+          function checkout(){if(!C.length){alert('Your cart is empty.');return}let t=C.reduce((s,p)=>s+p[3],0),items=C.map(p=>p[1]+' — '+naira(p[3])).join('%0A');location.href='https://wa.me/2349159185139?text='+encodeURIComponent("Hello VEE'S ESSENTIALS, I want to order:%0A"+items+"%0A%0ATotal: "+naira(t))}
+          show();
+          </script></body></html>
+          EOF
+
+      - name: Install Android SDK tools
+        uses: android-actions/setup-android@v3
+
+      - name: Install Android platform
+        run: sdkmanager "platforms;android-35" "build-tools;35.0.0"
+
+      - name: Install Gradle
+        run: |
+          curl -L -o gradle.zip https://services.gradle.org/distributions/gradle-8.9-bin.zip
+          unzip -q gradle.zip
+          echo "$PWD/gradle-8.9/bin" >> "$GITHUB_PATH"
+
+      - name: Build APK
+        run: gradle --no-daemon :app:assembleDebug
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v7
+        with:
+          name: VEE-S-ESSENTIALS-APK
+          path: app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error
+          archive: false
